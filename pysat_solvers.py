@@ -1,0 +1,75 @@
+from collections import defaultdict
+from pysat.card import CardEnc, EncType
+from pysat.formula import CNF
+from pysat.solvers import Solver
+import time
+
+def n_queens_cnf(n: int , enc_type: EncType = EncType.seqcounter, col_alo: bool = False) -> CNF:
+    cnf = CNF()
+    
+    def var_map(row, col) -> int:
+        return (row - 1) * n + col
+    
+    # ALO for each row (i.e {1 or 2 or 3})
+    for row in range(1, n + 1):
+        cnf.append([var_map(row, col) for col in range(1, n + 1)])
+    
+    #
+    if col_alo:
+        for col in range(1, n + 1):
+            cnf.append([var_map(row, col)] for row in range(1, n + 1))
+            
+    top_id = n * n
+    
+    def apply_amo(var_list):
+        nonlocal top_id
+        if len(var_list) <= 1:
+            return
+        amo = CardEnc.atmost(lits=var_list, bound=1, vpool=None, encoding=enc_type, top_id=top_id)
+        cnf.extend(amo.clauses)
+        if amo.nv > top_id:
+            top_id = amo.nv
+    
+    for row in range(1, n + 1):
+        apply_amo([var_map(row, col) for col in range(1, n + 1)])
+    for col in range(1, n + 1):
+        apply_amo([var_map(row, col) for row in range(1, n + 1)])
+        
+    diag_diff = defaultdict(list)
+    diag_sum = defaultdict(list)
+    
+    for row in range(1, n + 1):
+        for col in range(1, n + 1):
+            diag_diff[row - col].append(var_map(row, col))
+            diag_sum[row + col].append(var_map(row, col))
+            
+    for group in diag_diff.values():
+        apply_amo(group)
+    for group in diag_sum.values():
+        apply_amo(group)
+    
+    return cnf
+
+MATRIX_SIZES = [8, 16, 32, 64, 128, 256] 
+ENC_TYPES = [EncType.seqcounter, EncType.cardnetwrk, EncType.pairwise, EncType.sortnetwrk, EncType.totalizer]
+SAT_SOLVERS = ["cadical153", "glucose42", "cryptominisat5", "minisat22"]
+ENC_TYPES = {
+    EncType.pairwise: "pairwise",
+    EncType.seqcounter: "seqcounter",
+    EncType.sortnetwrk: "sortnetwrk",
+    EncType.cardnetwrk: "cardnetwrk",
+    EncType.bitwise: "bitwise"
+}
+
+for size in MATRIX_SIZES:
+    for (enc_type, enc_type_name) in ENC_TYPES.items():
+        cnf = n_queens_cnf(size, enc_type)
+        solver_name = "cadical153"
+        with Solver(name=solver_name, use_timer=True) as solver:
+            solver.append_formula(cnf)
+            if solver.solve():
+                print(f"Solution found for size {size} with encoding {enc_type_name} using solver {solver_name}.")
+                print(solver.time())
+                print(solver.accum_stats())
+            else:
+                print(f"No solution found for size {size} with encoding {enc_type_name} using solver {solver_name}.")    

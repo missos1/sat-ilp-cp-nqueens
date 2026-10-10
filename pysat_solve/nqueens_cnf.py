@@ -17,7 +17,7 @@ def n_queens_cnf(n: int , enc_type: EncType = EncType.seqcounter, col_alo: bool 
     #
     if col_alo:
         for col in range(1, n + 1):
-            cnf.append([var_map(row, col)] for row in range(1, n + 1))
+            cnf.append([var_map(row, col) for row in range(1, n + 1)])
             
     top_id = n * n
     
@@ -50,26 +50,3 @@ def n_queens_cnf(n: int , enc_type: EncType = EncType.seqcounter, col_alo: bool 
     
     return cnf
 
-MATRIX_SIZES = [8, 16, 32, 64, 128, 256] 
-ENC_TYPES = [EncType.seqcounter, EncType.cardnetwrk, EncType.pairwise, EncType.sortnetwrk, EncType.totalizer]
-SAT_SOLVERS = ["cadical153", "glucose42", "cryptominisat5", "minisat22"]
-ENC_TYPES = {
-    EncType.pairwise: "pairwise",
-    EncType.seqcounter: "seqcounter",
-    EncType.sortnetwrk: "sortnetwrk",
-    EncType.cardnetwrk: "cardnetwrk",
-    EncType.bitwise: "bitwise"
-}
-
-for size in MATRIX_SIZES:
-    for (enc_type, enc_type_name) in ENC_TYPES.items():
-        cnf = n_queens_cnf(size, enc_type)
-        solver_name = "cadical153"
-        with Solver(name=solver_name, use_timer=True) as solver:
-            solver.append_formula(cnf)
-            if solver.solve():
-                print(f"Solution found for size {size} with encoding {enc_type_name} using solver {solver_name}.")
-                print(solver.time())
-                print(solver.accum_stats())
-            else:
-                print(f"No solution found for size {size} with encoding {enc_type_name} using solver {solver_name}.")    

@@ -2,9 +2,8 @@ from collections import defaultdict
 from pysat.card import CardEnc, EncType
 from pysat.formula import CNF
 from pysat.solvers import Solver
-import time
 
-def n_queens_cnf(n: int , enc_type: EncType = EncType.seqcounter, col_alo: bool = False) -> CNF:
+def n_queens_cnf(n: int, enc_type: EncType = EncType.seqcounter, col_alo: bool = False) -> CNF:
     cnf = CNF()
     
     def var_map(row, col) -> int:
